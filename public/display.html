@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nomor antrian</title>
+<link rel="icon" href="logo-gojo.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--f-head:'Montserrat',system-ui,sans-serif;--f-ui:'Plus Jakarta Sans',system-ui,sans-serif;--f-body:'Inter',system-ui,sans-serif;--bg:#0E1A22;--ink:#F2F5F7;--mut:#8FA3B0;--acc:#3CC3E8}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);display:grid;grid-template-rows:1fr auto;text-align:center}
+main{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2vw}
+.lbl{font-size:clamp(20px,3vw,40px);color:var(--mut);font-weight:500}
+#no{font-family:var(--f-head);font-size:clamp(140px,34vw,520px);font-weight:800;line-height:1;color:var(--acc);font-variant-numeric:tabular-nums}
+#nama{font-family:var(--f-head);font-size:clamp(28px,5vw,72px);font-weight:500;margin-top:1vw}
+#no.baru{animation:kedip .9s ease-out}
+@keyframes kedip{0%{transform:scale(1.15);color:#fff}100%{transform:scale(1)}}
+footer{display:flex;gap:3vw;justify-content:center;padding:2vw;border-top:1px solid #243642;font-size:clamp(18px,2.6vw,36px);color:var(--mut);min-height:12vh;flex-wrap:wrap}
+footer b{color:var(--ink);font-weight:500}
+@media (prefers-reduced-motion:reduce){#no.baru{animation:none}}
+.logo{position:fixed;top:2vw;left:2vw;height:clamp(40px,7vw,110px);width:auto;background:#fff;padding:.6vw 1vw;border-radius:1vw}
+</style></head><body>
+<img src="logo-gojo.png" alt="GOJO Jabar" class="logo" onerror="this.style.display='none'">
+<main aria-live="polite"><div class="lbl">Nomor antrian terakhir</div><div id="no">-</div><div id="nama">Menunggu peserta pertama</div></main>
+<footer id="prev"></footer>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let last=null;
+async function cek(){
+  try{
+    const d=await (await fetch('api.php?r=tampil')).json();
+    if(!d.length)return;
+    const t=d[0];
+    if(t.no_antrian!==last){
+      $('no').textContent=t.no_antrian;$('nama').textContent=t.nama;
+      if(last!==null){$('no').classList.remove('baru');void $('no').offsetWidth;$('no').classList.add('baru')}
+      last=t.no_antrian;
+    }
+    $('prev').innerHTML=d.slice(1).map(r=>`<span><b>${r.no_antrian}</b> ${esc(r.nama)}</span>`).join('');
+  }catch(e){}
+}
+cek();setInterval(cek,2000);
+</script></body></html>

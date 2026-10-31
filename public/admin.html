@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Admin dispatcher bandara</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <link rel="icon" href="logo-gojo.png">
+    <link rel="stylesheet" href="style.css"></head><body>
+      
+      <div id="login" class="box">
+        <h1>Masuk admin</h1><p class="mut">Masukkan PIN admin.</p>
+        <label for="pin">PIN admin</label><input id="pin" type="password" autocomplete="current-password">
+        <div class="row" style="margin-top:12px">
+          <button id="masuk">Masuk</button>
+        </div>
+        <p id="loginErr" class="err" role="alert"></p>
+      </div>
+      
+      <div id="app" class="wrap" hidden>
+        <header class="noprint">
+          <img src="logo-gojo.png" alt="Logo" style="height:40px">
+          <h1>Dispatcher bandara</h1>
+          <button class="sec" id="keluar">Keluar</button>
+        </header>
+        
+        <section class="box noprint">
+          <div class="tabs" style="margin-bottom:12px">
+            <button class="sec" data-p="hari">Hari ini</button>
+            <button class="sec" data-p="minggu">Minggu ini</button>
+            <button class="sec" data-p="bulan">Bulan ini</button>
+            <button class="sec" data-p="rentang">Rentang tanggal</button>
+          </div>
+          
+          <div class="row">
+            <div>
+              <label for="dari">Dari</label>
+              <input type="date" id="dari">
+            </div>
+            <div>
+              <label for="sampai">Sampai</label>
+              <input type="date" id="sampai">
+            </div>
+            <button id="terapkan">Tampilkan</button>
+            <button class="sec" id="csv">Unduh CSV</button>
+          </div>
+          <p id="periode" class="mut" style="margin:10px 0 0"></p>
+        </section>
+        
+        <div class="sum noprint">
+          <div>
+            <span class="mut">Total antrian</span>
+            <b id="sA">0</b>
+          </div>
+          <div>
+            <span class="mut">Perjalanan tercatat</span>
+            <b id="sP">0</b>
+          </div>
+          <div>
+            <span class="mut">Total pembayaran</span>
+            <b id="sN">Rp 0</b>
+          </div>
+        </div>
+        
+        <div class="tabs noprint">
+          <button data-t="rekap" class="on">Rekap antrian</button>
+          <button data-t="trip" class="sec">Perjalanan &amp; pembayaran</button>
+          <button data-t="driver" class="sec">Driver &amp; QR</button>
+        </div>
+        
+        <section class="box" id="t-rekap">
+          <div class="row noprint" style="margin-bottom:12px">
+          <button id="tambahAbs">+ Tambah data</button>
+        </div>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th class="n">No</th>
+                  <th>ID driver</th>
+                  <th>Nama</th>
+                  <th>ID perjalanan</th>
+                  <th class="n">Nominal</th>
+                  <th>Jam</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="bRekap"></tbody>
+            </table>
+          </div>
+          <p id="kRekap" class="mut" hidden>Tidak ada antrian pada periode ini.</p>
+        </section>
+
+        <section class="box" id="t-trip" hidden>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>ID perjalanan</th>
+                  <th>Driver</th>
+                  <th class="n">Nominal dibayar penumpang</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="bTrip"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3">Total</td>
+                  <td class="n" id="fTrip">Rp 0</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p id="kTrip" class="mut" hidden>Belum ada perjalanan tercatat pada periode ini.</p>
+        </section>
+
+  <div id="t-driver" hidden>
+    <section class="box noprint">
+      <h2>Tambah driver</h2>
+      <p class="mut">Satu driver per baris, format: ID,Nama. Contoh: D001,Budi Santoso</p>
+      <label for="daftar">Daftar driver</label>
+      <textarea id="daftar" placeholder="D001,Budi Santoso&#10;D002,Siti Aminah"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="simpan">Simpan driver</button>
+        <span id="pesan" class="mut" role="status"></span>
+      </div>
+    </section>
+    <section class="box">
+      <div class="row" style="margin-bottom:12px">
+        <div style="flex:1">
+          <label for="cari">Cari driver</label>
+          <input id="cari" placeholder="Ketik ID atau nama" autocomplete="off"></div>
+          <span id="jml" class="mut"></span>
+        </div>
+        <p id="pDriver" class="mut" role="status"></p>
+      <div class="tbl">
+        <table>
+          <thead>
+            <tr>
+              <th>ID driver</th>
+              <th>Nama</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bDriver">
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <h2 id="dJudul" style="font-size:20px">Ubah data antrian</h2>
+  <p id="dInfo" class="mut"></p>
+  <label for="dDriver">ID driver</label>
+  <input id="dDriver" list="dlDriver" autocomplete="off">
+  <datalist id="dlDriver"></datalist>
+  <label for="dTgl" style="margin-top:10px">Tanggal</label>
+  <input type="date" id="dTgl">
+  <label for="dTrip" style="margin-top:10px">ID perjalanan</label>
+  <input id="dTrip" autocomplete="off">
+  <label for="dNom" style="margin-top:10px">Nominal dibayar penumpang (Rp)</label>
+  <input id="dNom" inputmode="numeric" autocomplete="off">
+  <p class="mut">ID perjalanan dan nominal boleh dikosongkan bersama-sama.</p>
+  <p id="dErr" class="err" role="alert"></p>
+  <div class="row">
+    <button id="dSimpan">Simpan</button>
+    <button class="sec" id="dBatal">Batal</button>
+  </div>
+</dialog>
+
+<dialog id="dDel">
+  <h2 style="font-size:20px">Hapus data antrian?</h2>
+  <p id="xInfo"></p>
+  <p id="xErr" class="err" role="alert"></p>
+  <div class="row">
+    <button id="xYa" style="background:var(--err)">Hapus</button>
+    <button class="sec" id="xBatal">Batal</button>
+  </div>
+</dialog>
+
+<dialog id="dQR" style="text-align:center">
+  <canvas id="cvQR" style="width:100%;max-width:300px;border:1px solid var(--line)"></canvas>
+  <div class="row" style="justify-content:center;margin-top:12px">
+    <button id="qUnduh">Unduh PNG</button>
+    <button class="sec" id="qTutup">Tutup</button>
+  </div>
+</dialog>
+
+<dialog id="dEd">
+  <h2 style="font-size:20px">Edit driver</h2>
+  <label for="eId">ID driver</label>
+  <input id="eId" autocomplete="off">
+  <label for="eNama" style="margin-top:10px">Nama</label>
+  <input id="eNama" autocomplete="off">
+  <p class="mut">Jika ID diubah, QR lama tidak berlaku lagi dan harus dicetak ulang. ID hanya bisa diubah selama driver belum punya riwayat antrian.</p>
+  <p id="eErr" class="err" role="alert"></p>
+  <div class="row">
+    <button id="eSimpan">Simpan</button>
+    <button class="sec" id="eBatal">Batal</button>
+  </div>
+</dialog>
+<dialog id="dHp">
+  <h2 style="font-size:20px">Hapus driver?</h2>
+  <p id="hInfo"></p>
+  <p id="hErr" class="err" role="alert"></p>
+  <div class="row">
+    <button id="hYa" style="background:var(--err)">Hapus driver</button>
+    <button class="sec" id="hBatal">Batal</button>
+  </div>
+</dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp=n=>n==null?'-':'Rp '+Number(n).toLocaleString('id-ID');
+const tgl=d=>d.toLocaleDateString('sv-SE');
+const tglId=s=>new Date(s+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+let pin=sessionStorage.getItem('adminPin')||'', rows=[], editId=null;
+
+async function api(p,o={}){
+  const r=await fetch(p,{...o,headers:{'Content-Type':'application/json','x-pin':pin}});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||'Gagal ('+r.status+')');
+  return d;
+}
+async function masuk(){
+  try{await api('api.php?r=peserta');sessionStorage.setItem('adminPin',pin);
+    $('login').hidden=true;$('app').hidden=false;preset('hari');muatDriver();
+  }catch(e){$('loginErr').textContent=e.message==='PIN salah'?'PIN salah. Coba lagi.':e.message}
+}
+$('masuk').onclick=()=>{pin=$('pin').value;masuk()};
+$('pin').onkeydown=e=>{if(e.key==='Enter')$('masuk').click()};
+$('keluar').onclick=()=>{sessionStorage.clear();location.reload()};
+
+/* ---- periode ---- */
+function preset(p){
+  const n=new Date();let a=n,b=n;
+  if(p==='minggu'){a=new Date(n);a.setDate(n.getDate()-((n.getDay()+6)%7));b=new Date(a);b.setDate(a.getDate()+6)}
+  if(p==='bulan'){a=new Date(n.getFullYear(),n.getMonth(),1);b=new Date(n.getFullYear(),n.getMonth()+1,0)}
+  if(p!=='rentang'){$('dari').value=tgl(a);$('sampai').value=tgl(b)}
+  document.querySelectorAll('[data-p]').forEach(x=>x.className=x.dataset.p===p?'on':'sec');
+  if(p==='rentang')$('dari').focus();else muat();
+}
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>preset(b.dataset.p));
+$('terapkan').onclick=()=>{document.querySelectorAll('[data-p]').forEach(x=>x.className=x.dataset.p==='rentang'?'on':'sec');muat()};
+
+async function muat(){
+  const a=$('dari').value,b=$('sampai').value;
+  rows=await api(`api.php?r=rekap&dari=${a}&sampai=${b}`);
+  $('periode').textContent='Periode: '+(a===b?tglId(a):tglId(a)+' sampai '+tglId(b));
+  const trip=rows.filter(r=>r.id_perjalanan),tot=trip.reduce((s,r)=>s+(r.nominal||0),0);
+  $('sA').textContent=rows.length;$('sP').textContent=trip.length;$('sN').textContent=rp(tot);
+  const aksi=r=>`<button class="sec kecil noprint" onclick="ubah(${r.id})">${r.id_perjalanan?'Ubah':'Isi'}</button>`;
+  const aksiR=r=>aksi(r)+` <button class="sec kecil noprint" style="color:var(--err)" onclick="hapus(${r.id})">Hapus</button>`;
+  const jam=r=>new Date(r.waktu).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  $('bRekap').innerHTML=rows.map(r=>`<tr><td>${tglId(r.tanggal)}</td><td class="n">${r.no_antrian}</td><td>${esc(r.driver_id)}</td><td>${esc(r.nama)}</td><td>${r.id_perjalanan?esc(r.id_perjalanan):'<span class="mut">belum diisi</span>'}</td><td class="n">${rp(r.nominal)}</td><td>${jam(r)}</td><td>${aksiR(r)}</td></tr>`).join('');
+  $('kRekap').hidden=rows.length>0;
+  $('bTrip').innerHTML=trip.map(r=>`<tr><td>${tglId(r.tanggal)}</td><td>${esc(r.id_perjalanan)}</td><td>${esc(r.nama)} (${esc(r.driver_id)})</td><td class="n">${rp(r.nominal)}</td><td>${aksi(r)}</td></tr>`).join('');
+  $('fTrip').textContent=rp(tot);$('kTrip').hidden=trip.length>0;
+}
+
+/* ---- tambah / ubah / hapus data antrian ---- */
+let aMode='ubah',delId=null;
+function bukaDlg(mode,r){
+  aMode=mode;editId=r?r.id:null;
+  $('dJudul').textContent=mode==='tambah'?'Tambah data antrian':'Ubah data antrian';
+  $('dInfo').textContent=r?`Antrian ${r.no_antrian} · ${tglId(r.tanggal)}. Tanggal dan nomor tidak bisa diubah.`:'Nomor antrian dibuat otomatis sesuai tanggal.';
+  $('dDriver').value=r?r.driver_id:'';
+  $('dTgl').value=r?r.tanggal:($('dari').value||tgl(new Date()));$('dTgl').disabled=!!r;
+  $('dTrip').value=r?.id_perjalanan||'';$('dNom').value=r?.nominal??'';
+  $('dErr').textContent='';$('dlg').showModal();$('dDriver').focus();
+}
+window.ubah=id=>bukaDlg('ubah',rows.find(x=>x.id===id));
+$('tambahAbs').onclick=()=>bukaDlg('tambah');
+$('dBatal').onclick=()=>$('dlg').close();
+$('dSimpan').onclick=async()=>{
+  const body={peserta_id:$('dDriver').value.trim(),id_perjalanan:$('dTrip').value,nominal:$('dNom').value.replace(/\D/g,'')};
+  try{
+    if(aMode==='tambah'){body.tanggal=$('dTgl').value;await api('api.php?r=absensi',{method:'POST',body:JSON.stringify(body)})}
+    else{body.id=editId;await api('api.php?r=absensi',{method:'PUT',body:JSON.stringify(body)})}
+    $('dlg').close();muat();
+  }catch(e){$('dErr').textContent=e.message}
+};
+window.hapus=id=>{
+  const r=rows.find(x=>x.id===id);delId=id;
+  $('xInfo').textContent=`Hapus antrian ${r.no_antrian} atas nama ${r.nama} (${tglId(r.tanggal)})`+(r.id_perjalanan?` beserta data perjalanan ${r.id_perjalanan} (${rp(r.nominal)})`:'')+'? Tindakan ini tidak bisa dibatalkan, dan nomor antrian lain tidak berubah.';
+  $('xErr').textContent='';$('dDel').showModal();
+};
+$('xBatal').onclick=()=>$('dDel').close();
+$('xYa').onclick=async()=>{
+  try{await api('api.php?r=absensi',{method:'DELETE',body:JSON.stringify({id:delId})});$('dDel').close();muat()}
+  catch(e){$('xErr').textContent=e.message}
+};
+
+/* ---- tab ---- */
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-t]').forEach(x=>{x.className=x===b?'on':'sec';$('t-'+x.dataset.t).hidden=x!==b});
+});
+
+/* ---- driver & QR ---- */
+let drivers=[],pilih=null;
+function gambarQR(cv,id,kode){
+  const q=qrcode(0,'M');q.addData(kode);q.make();
+  const n=q.getModuleCount(),c=Math.ceil(520/(n+8)),m=4*c,w=(n+8)*c,H=90;
+  cv.width=w;cv.height=w+H;const x=cv.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,w,w+H);x.fillStyle='#000';
+  x.textAlign='center';x.textBaseline='middle';
+  let f=46;do{x.font=`700 ${f}px Arial, sans-serif`;f-=2}while(x.measureText(id).width>w-40&&f>14);
+  x.fillText(id,w/2,H/2);
+  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(m+k*c,H+m+r*c,c,c);
+}
+async function muatDriver(){drivers=await api('api.php?r=peserta');$('dlDriver').innerHTML=drivers.map(d=>`<option value="${esc(d.id)}">${esc(d.nama)}</option>`).join('');tampilDriver()}
+function tampilDriver(){
+  const k=$('cari').value.trim().toLowerCase();
+  const l=drivers.filter(d=>(d.id+' '+d.nama).toLowerCase().includes(k));
+  $('jml').textContent=l.length+' dari '+drivers.length+' driver';
+  $('bDriver').innerHTML=l.map(d=>`<tr><td>${esc(d.id)}</td><td>${esc(d.nama)}</td><td>
+    <button class="sec kecil" data-a="qr" data-id="${esc(d.id)}">QR</button>
+    <button class="sec kecil" data-a="edit" data-id="${esc(d.id)}">Edit</button>
+    <button class="sec kecil" data-a="hapus" data-id="${esc(d.id)}" style="color:var(--err)">Hapus</button></td></tr>`).join('')
+    ||`<tr><td colspan="3" class="mut">${drivers.length?'Tidak ada driver yang cocok.':'Belum ada driver. Tambahkan lewat form di atas.'}</td></tr>`;
+}
+$('cari').oninput=tampilDriver;
+$('bDriver').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  pilih=drivers.find(d=>d.id===b.dataset.id);if(!pilih)return;
+  if(b.dataset.a==='qr'){gambarQR($('cvQR'),pilih.id,pilih.kode);$('dQR').showModal()}
+  if(b.dataset.a==='edit'){$('eId').value=pilih.id;$('eNama').value=pilih.nama;$('eErr').textContent='';$('dEd').showModal();$('eNama').focus()}
+  if(b.dataset.a==='hapus'){$('hInfo').textContent=`${pilih.nama} (${pilih.id}) akan dihapus dari daftar driver. Jika sudah punya riwayat antrian, driver dinonaktifkan dan riwayat perjalanan tetap tersimpan di rekap.`;$('hErr').textContent='';$('dHp').showModal()}
+};
+$('qTutup').onclick=()=>$('dQR').close();
+$('qUnduh').onclick=()=>$('cvQR').toBlob(bl=>{
+  const a=document.createElement('a');a.href=URL.createObjectURL(bl);
+  a.download='QR-'+pilih.id.replace(/[^\w-]+/g,'_')+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+},'image/png');
+$('eBatal').onclick=()=>$('dEd').close();
+$('eSimpan').onclick=async()=>{
+  try{await api('api.php?r=peserta',{method:'PUT',body:JSON.stringify({id:pilih.id,id_baru:$('eId').value,nama:$('eNama').value})});
+    $('dEd').close();$('pDriver').textContent='Perubahan driver tersimpan.';await muatDriver();muat()}
+  catch(e){$('eErr').textContent=e.message}
+};
+$('hBatal').onclick=()=>$('dHp').close();
+$('hYa').onclick=async()=>{
+  try{const r=await api('api.php?r=peserta',{method:'DELETE',body:JSON.stringify({id:pilih.id})});
+    $('dHp').close();$('pDriver').textContent=r.nonaktif?`${pilih.nama} dinonaktifkan. Riwayat tetap ada di rekap.`:`${pilih.nama} dihapus.`;
+    await muatDriver()}
+  catch(e){$('hErr').textContent=e.message}
+};
+$('simpan').onclick=async()=>{
+  const baris=$('daftar').value.split('\n').map(s=>s.trim()).filter(Boolean);let ok=0,gagal=[];
+  for(const b of baris){
+    const i=b.indexOf(',');if(i<1){gagal.push(b+' (format salah)');continue}
+    try{await api('api.php?r=peserta',{method:'POST',body:JSON.stringify({id:b.slice(0,i).trim(),nama:b.slice(i+1).trim()})});ok++}
+    catch(e){gagal.push(b.slice(0,i)+' ('+e.message+')')}
+  }
+  $('pesan').className=gagal.length?'err':'mut';
+  $('pesan').textContent=ok+' driver tersimpan.'+(gagal.length?' Gagal: '+gagal.join('; '):'');
+  if(!gagal.length)$('daftar').value='';muatDriver();
+};
+
+/* ---- CSV ---- */
+$('csv').onclick=()=>{
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const t='Tanggal,No antrian,ID driver,Nama,ID perjalanan,Nominal\n'+rows.map(r=>[r.tanggal,r.no_antrian,q(r.driver_id),q(r.nama),q(r.id_perjalanan),r.nominal??''].join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv'}));
+  a.download=`rekap-${$('dari').value}_${$('sampai').value}.csv`;a.click();
+};
+if(pin)masuk();
+</script>
+</body>
+</html>

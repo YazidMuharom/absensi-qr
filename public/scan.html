@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scan driver</title>
+<link rel="icon" href="logo-gojo.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--f-head:'Montserrat',system-ui,sans-serif;--f-ui:'Plus Jakarta Sans',system-ui,sans-serif;--f-body:'Inter',system-ui,sans-serif;--bg:#F2F5F7;--ink:#14212B;--mut:#5B6B77;--line:#D5DEE4;--acc:#0B6E8A;--ok:#1F8A4C;--warn:#B7791F;--err:#C0392B}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+.wrap{max-width:520px;margin:0 auto;padding:16px}
+h1{font:700 22px var(--f-head);margin:0 0 12px}
+#reader{width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:240px}
+label{display:block;font-family:var(--f-ui);font-weight:500;font-size:14px;margin:10px 0 4px}
+input,button{font:inherit;padding:11px 14px;border-radius:8px;border:1px solid var(--line);width:100%}
+input:focus,button:focus-visible{outline:3px solid #0B6E8A55;border-color:var(--acc)}
+button{font-family:var(--f-ui);background:var(--acc);color:#fff;border:0;font-weight:500;margin-top:10px}button.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button.kecil{width:auto;margin:0;padding:4px 12px;font-size:14px}
+#hasil{margin:14px 0;border-radius:12px;padding:16px;text-align:center;background:#fff;border:2px solid var(--line)}
+#hasil .no{font:700 64px/1 var(--f-head)}
+#hasil.ok{border-color:var(--ok)}#hasil.ok .no{color:var(--ok)}
+#hasil.dup{border-color:var(--warn)}#hasil.dup .no{color:var(--warn)}
+#hasil.err{border-color:var(--err);color:var(--err)}
+.nama{font-size:20px;font-weight:500}.mut{color:var(--mut);font-size:14px}.err{color:var(--err);font-weight:500}
+#form{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+ul{list-style:none;padding:0;margin:0}li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+li small{display:block;color:var(--mut)}
+dialog{border:0;border-radius:12px;padding:20px;width:min(380px,92vw)}dialog::backdrop{background:#0008}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:12px}.brand h1{margin:0}
+.logo{height:40px;width:auto;display:block}
+</style></head><body><div class="wrap">
+<div class="brand"><img src="logo-gojo.png" alt="GOJO Jabar" class="logo" onerror="this.style.display='none'"><h1>Scan driver</h1></div>
+<div id="gate"><label for="pin">PIN dispatcher</label><input id="pin" type="password"><button id="mulai">Mulai scan</button><p id="gErr" class="mut" role="alert"></p></div>
+<div id="main" hidden>
+  <div id="reader"></div>
+  <div id="hasil" role="status" aria-live="polite"><span class="mut">Arahkan kamera ke QR driver.</span></div>
+  <form id="form" hidden>
+    <b>Data perjalanan</b>
+    <label for="fTrip">ID perjalanan</label><input id="fTrip" autocomplete="off" required>
+    <label for="fNom">Nominal dibayar penumpang (Rp)</label><input id="fNom" inputmode="numeric" autocomplete="off" required>
+    <p id="fErr" class="err" role="alert"></p>
+    <button type="submit">Simpan perjalanan</button><button type="button" class="sec" id="lewati">Isi nanti</button>
+  </form>
+  <h2 class="mut" style="font-size:15px;font-weight:500">Antrian hari ini</h2><ul id="log"></ul>
+</div></div>
+
+<dialog id="dlg"><h2 style="font:700 20px var(--f-head);margin:0">Isi / ubah perjalanan</h2><p id="dInfo" class="mut"></p>
+  <label for="dTrip">ID perjalanan</label><input id="dTrip" autocomplete="off">
+  <label for="dNom">Nominal dibayar penumpang (Rp)</label><input id="dNom" inputmode="numeric" autocomplete="off">
+  <p id="dErr" class="err" role="alert"></p>
+  <button id="dSimpan">Simpan perubahan</button><button class="sec" id="dBatal">Batal</button></dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rp=n=>'Rp '+Number(n).toLocaleString('id-ID');
+let pin=sessionStorage.getItem('petugasPin')||'',kunci=false,qr,aktif=null,daftar=[],editId=null;
+
+async function api(p,o={}){
+  const r=await fetch(p,{...o,headers:{'Content-Type':'application/json','x-pin':pin}});
+  const d=await r.json().catch(()=>({}));
+  if(r.status===401)throw Object.assign(new Error('PIN salah'),{pin:true});
+  if(!r.ok)throw new Error(d.error||'Gagal memproses');
+  return d;
+}
+function pinSalah(){sessionStorage.removeItem('petugasPin');if(qr&&qr.isScanning)qr.stop();$('main').hidden=true;$('gate').hidden=false;$('gErr').textContent='PIN salah. Masukkan lagi.'}
+function tampil(k,h){$('hasil').className=k;$('hasil').innerHTML=h}
+const angka=v=>String(v).replace(/\D/g,'');
+
+async function muatAntrian(){
+  daftar=await api('api.php?r=antrian');
+  $('log').innerHTML=daftar.map(r=>`<li><span><b>${r.no_antrian}. ${esc(r.nama)}</b><small>${r.id_perjalanan?esc(r.id_perjalanan)+' · '+rp(r.nominal):'Belum ada data perjalanan'}</small></span><button class="kecil sec" onclick="buka(${r.id})">${r.id_perjalanan?'Ubah':'Isi'}</button></li>`).join('')||'<span class="mut">Belum ada antrian hari ini.</span>';
+}
+
+async function onScan(kode){
+  if(kunci)return;kunci=true;
+  try{
+    const d=await api('api.php?r=scan',{method:'POST',body:JSON.stringify({kode})});
+    aktif=d.absen_id;
+    tampil(d.sudah?'dup':'ok',`<div class="mut">${d.sudah?'Antrian aktif, nomor tetap':'Nomor antrian'}</div><div class="no">${d.no}</div><div class="nama">${esc(d.nama)}</div><div class="mut">${esc(d.id)}</div>`);
+    navigator.vibrate&&navigator.vibrate(120);
+    qr.pause(true);$('form').hidden=false;$('fErr').textContent='';$('fTrip').value='';$('fNom').value='';$('fTrip').focus();
+    muatAntrian();
+  }catch(e){
+    if(e.pin)return pinSalah();
+    tampil('err',`<b>${esc(e.message)}</b>`);navigator.vibrate&&navigator.vibrate([80,60,80]);
+    setTimeout(()=>kunci=false,2500);
+  }
+}
+function lanjut(){$('form').hidden=true;kunci=false;try{qr.resume()}catch(e){}}
+
+$('form').onsubmit=async e=>{
+  e.preventDefault();
+  try{
+    await api('api.php?r=perjalanan',{method:'POST',body:JSON.stringify({absen_id:aktif,id_perjalanan:$('fTrip').value,nominal:angka($('fNom').value)})});
+    tampil('ok',`<div class="no" style="font-size:32px">Tersimpan</div><div class="mut">${esc($('fTrip').value)} · ${rp(angka($('fNom').value))}</div>`);
+    lanjut();muatAntrian();
+  }catch(er){if(er.pin)return pinSalah();$('fErr').textContent=er.message}
+};
+$('lewati').onclick=()=>{tampil('',`<span class="mut">Data perjalanan belum diisi. Isi lewat daftar di bawah.</span>`);lanjut()};
+
+/* dialog ubah dari daftar */
+window.buka=id=>{const r=daftar.find(x=>x.id===id);editId=id;
+  $('dInfo').textContent=`Antrian ${r.no_antrian} · ${r.nama}`;$('dTrip').value=r.id_perjalanan||'';$('dNom').value=r.nominal??'';$('dErr').textContent='';$('dlg').showModal();$('dTrip').focus()};
+$('dBatal').onclick=()=>$('dlg').close();
+$('dSimpan').onclick=async()=>{
+  try{await api('api.php?r=perjalanan',{method:'POST',body:JSON.stringify({absen_id:editId,id_perjalanan:$('dTrip').value,nominal:angka($('dNom').value)})});
+    $('dlg').close();muatAntrian()}catch(e){if(e.pin){$('dlg').close();return pinSalah()}$('dErr').textContent=e.message}
+};
+
+async function mulai(){
+  $('gate').hidden=true;$('main').hidden=false;
+  qr=new Html5Qrcode('reader');
+  try{await qr.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},onScan,()=>{});muatAntrian().catch(e=>e.pin&&pinSalah())}
+  catch(e){$('main').hidden=true;$('gate').hidden=false;$('gErr').textContent='Kamera tidak bisa dibuka. Izinkan akses kamera di browser dan gunakan HTTPS atau localhost.'}
+}
+$('mulai').onclick=()=>{pin=$('pin').value;if(!pin){$('gErr').textContent='PIN wajib diisi.';return}sessionStorage.setItem('petugasPin',pin);mulai()};
+$('pin').onkeydown=e=>{if(e.key==='Enter')$('mulai').click()};
+if(pin)mulai();
+</script></body></html>
