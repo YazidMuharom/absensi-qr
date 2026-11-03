@@ -30,3 +30,9 @@ dialog{border:0;border-radius:12px;padding:20px;width:min(380px,92vw)}dialog::ba
 .brand{display:flex;align-items:center;gap:12px}.brand h1{margin:0}
 .logo{height:44px;width:auto;display:block}
 #login .logo{height:56px;margin-bottom:12px}
+.pin-wrap{position:relative}
+.pin-wrap input{padding-right:48px}
+.mata{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;margin:0;padding:0;
+  background:transparent;color:var(--mut);border:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mata:hover{color:var(--ink)}
+.mata svg{width:22px;height:22px}

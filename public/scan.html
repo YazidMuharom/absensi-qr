@@ -3,7 +3,20 @@
 <title>Scan driver</title>
 <link rel="icon" href="logo-gojo.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+  const MATA = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+const MATA_TUTUP = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+document.getElementById('lihatPin').onclick = function () {
+  const pin = document.getElementById('pin');
+  const tampil = pin.type === 'password';
+  pin.type = tampil ? 'text' : 'password';
+  this.setAttribute('aria-pressed', String(tampil));
+  this.setAttribute('aria-label', tampil ? 'Sembunyikan PIN' : 'Tampilkan PIN');
+  document.getElementById('ikonMata').innerHTML = tampil ? MATA_TUTUP : MATA;
+  pin.focus();
+};
+</script>
 <style>
 :root{--f-head:'Montserrat',system-ui,sans-serif;--f-ui:'Plus Jakarta Sans',system-ui,sans-serif;--f-body:'Inter',system-ui,sans-serif;--bg:#F2F5F7;--ink:#14212B;--mut:#5B6B77;--line:#D5DEE4;--acc:#0B6E8A;--ok:#1F8A4C;--warn:#B7791F;--err:#C0392B}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
@@ -28,10 +41,19 @@ dialog{border:0;border-radius:12px;padding:20px;width:min(380px,92vw)}dialog::ba
 .brand{display:flex;align-items:center;gap:10px;margin-bottom:12px}.brand h1{margin:0}
 .logo{height:40px;width:auto;display:block}
 </style></head><body><div class="wrap">
-<div class="brand"><img src="logo-gojo.png" alt="GOJO Jabar" class="logo" onerror="this.style.display='none'"><h1>Scan driver</h1></div>
-<div id="gate"><label for="pin">PIN dispatcher</label><input id="pin" type="password"><button id="mulai">Mulai scan</button><p id="gErr" class="mut" role="alert"></p></div>
-<div id="main" hidden>
-  <div id="reader"></div>
+  <div id="gate">
+  <label for="pin">PIN dispatcher</label>
+  <div class="pin-wrap">
+    <input id="pin" type="password" autocomplete="current-password">
+    <button type="button" id="lihatPin" class="mata" aria-label="Tampilkan PIN" aria-pressed="false">
+      <svg id="ikonMata" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+  </div>
+  <button id="mulai">Mulai scan</button>
+  <p id="gErr" class="mut" role="alert"></p>
+</div>
   <div id="hasil" role="status" aria-live="polite"><span class="mut">Arahkan kamera ke QR driver.</span></div>
   <form id="form" hidden>
     <b>Data perjalanan</b>
